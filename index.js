@@ -4,7 +4,7 @@ const GitUrlParse = require("git-url-parse");
 const Git = require("nodegit");
 const path = require("path");
 const extra = require("fs-extra");
-const { exec } = require("child_process");
+const { exec, execSync } = require("child_process");
 
 const { getConfig, checkArray, waitingDot, clean, App } = require("./src");
 
@@ -97,7 +97,8 @@ const getInstallComand = (arr, postfix) => {
 
 const execComands = command => {
   console.log(command);
-  exec(command, (err, stdout, stderr) => {
+  const c = execSync(
+    command /* (err, stdout, stderr) => {
     if (err) {
       console.log(chalk.red("ERROR executing command"));
       console.log(err);
@@ -107,22 +108,31 @@ const execComands = command => {
     // the *entire* stdout and stderr (buffered)
     console.log(`stdout: ${stdout}`);
     console.log(`stderr: ${stderr}`);
-  });
+  } */
+  );
+  console.log(c.toJSON());
 };
 
 const start = async () => {
   App.setDir(__dirname);
-  clean(__dirname);
+  // clean(__dirname);
   const [, , ...args] = process.argv;
   const callerPath = process.env.INIT_CWD;
   App.setCallerDir(callerPath);
   const file = args[0];
-  console.log(callerPath, file);
   const conf = getConfig(path.join(callerPath, file));
-  if (conf.autoindex) App.setAutoindex(true);
-  await mapRepositories(conf.repositories);
-  structurize(conf.struct);
-  execComands(getInstallComand(conf.dependencies));
+  if (conf) {
+    App.setConf(conf);
+    App.start();
+  }
+  // if (conf.autoindex) App.setAutoindex(true);
+  // if (conf.workingDir) App.setWorkingDir(conf.workingDir);
+  // console.log(App, conf.before);
+  // conf.before.forEach(c => execComands(c));
+  // console.log(process.env);
+  // await mapRepositories(conf.repositories);
+  // structurize(conf.struct);
+  // execComands(getInstallComand(conf.dependencies));
 };
 
 module.exports = start;
