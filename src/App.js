@@ -21,6 +21,8 @@ class App {
     this.reposConf = {};
     this._deps = []; // dependency install strings
     this.struct = null; // folder and file structure for new repo
+
+    this.getRepoPath = this.getRepoPath.bind(this);
   }
 
   setConf(conf) {
@@ -98,15 +100,15 @@ class App {
 
   clean() {}
 
-  async start() {
-    console.log(this);
-    console.log(this.conf.struct[0].src[0].components[0].Button);
+  doBefore() {
     // if exist, exec comands before anything else
     if (this.before) {
       this.before.forEach(command => execCommand(command));
     }
+  }
 
-    // get and map repos
+  // get and map repos
+  async doMapAndRepos() {
     const keys = Object.keys(this.reposConf);
     for (let i = 0; i < keys.length; i++) {
       const clonedRepo = await getGitRepo(
@@ -116,17 +118,22 @@ class App {
       );
       if (clonedRepo) this.addRepo(clonedRepo);
     }
+  }
 
-    // create folder structure
+  // create folder structure
+  doStruct() {
     if (this.struct) {
       structGenerator(this.struct, {
         autoindex: this.autoindex,
         workingDir: this.__workingDir,
-        getRepoPath: this.getRepoPath
+        getRepoPath: this.getRepoPath,
+        appPath: this.__dirname
       });
     }
+  }
 
-    // install dependencies
+  // install dependencies
+  async doInstall() {
     if (!packageJson.checkPackageJson()) {
       // if package json, doesnt exist in current working dir, generate one empty one
       packageJson.generatePackage(this.__workingDir);
@@ -134,8 +141,15 @@ class App {
     for (let i = 0; i < this._deps.length; i++) {
       await execCommand(this._deps[i], { cwd: `${this.__workingDir}/` });
     }
+  }
 
-    // execute script after
+  async start() {
+    console.log(this);
+    // console.log(this.conf.struct[0].src[0].components[0].Button);
+    this.doBefore();
+    await this.doMapAndRepos();
+    this.doStruct();
+    // this.doInstall();
   }
 }
 
